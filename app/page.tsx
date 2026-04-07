@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type WaitlistResult = {
   type: "success" | "error";
@@ -42,9 +42,19 @@ async function joinWaitlist(email: string): Promise<WaitlistResult> {
 }
 
 export default function Home() {
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
   const [email, setEmail] = useState("");
   const [heroLoading, setHeroLoading] = useState(false);
   const [heroResult, setHeroResult] = useState<WaitlistResult | null>(null);
+
+  function scrollToEmailInput() {
+    emailInputRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    emailInputRef.current?.focus();
+  }
 
   const [ctaEmail, setCtaEmail] = useState("");
   const [ctaLoading, setCtaLoading] = useState(false);
@@ -81,7 +91,10 @@ export default function Home() {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-5">
         <Image src="/doju-logo.png" alt="Doju Logo" width={100} height={100} />
-        <button className="px-5 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">
+        <button
+          onClick={scrollToEmailInput}
+          className="px-5 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+        >
           Join Waitlist
         </button>
       </nav>
@@ -95,13 +108,13 @@ export default function Home() {
             <span className="bg-green-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
               New
             </span>
-            <span className="text-sm text-gray-600">
+            <span className="sm:text-sm text-xs text-gray-600">
               Your centralized health market place
             </span>
           </div>
 
           {/* Heading */}
-          <h1 className="text-5xl font-bold text-gray-900 leading-[1.1] tracking-tight">
+          <h1 className="sm:text-5xl text-4xl font-bold text-gray-900 leading-[1.1] tracking-tight">
             Your complete medical supply store in one app
           </h1>
 
@@ -114,8 +127,9 @@ export default function Home() {
 
           {/* Email form */}
           <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <input
+                ref={emailInputRef}
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
@@ -310,7 +324,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           {/* Heading */}
           <div className="text-center mb-14">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="sm:text-4xl text-3xl font-bold text-gray-900 mb-4">
               Why choose Doju?
             </h2>
             <p className="text-gray-400 text-base leading-relaxed max-w-lg mx-auto">
@@ -473,14 +487,14 @@ export default function Home() {
       {/* CTA section */}
       <section className="bg-gray-900 py-28 px-8 text-center">
         <div className="max-w-2xl mx-auto flex flex-col items-center gap-6">
-          <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+          <h2 className="sm:text-4xl text-3xl md:text-5xl font-bold text-white leading-tight">
             Ready to transform your procurement?
           </h2>
           <p className="text-gray-400 text-base">
             Join hundreds of healthcare professionals on our waitlist today.
           </p>
           <div className="flex flex-col gap-3 w-full max-w-xl mt-2">
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <input
                 type="email"
                 placeholder="Enter your email address"
