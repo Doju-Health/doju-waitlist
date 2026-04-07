@@ -3,8 +3,78 @@
 import Image from "next/image";
 import { useState } from "react";
 
+type WaitlistResult = {
+  type: "success" | "error";
+  message: string;
+  email?: string;
+  joinedAt?: string;
+};
+
+async function joinWaitlist(email: string): Promise<WaitlistResult> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/waitlist`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      },
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        type: "error",
+        message: data.message ?? "Something went wrong. Please try again.",
+      };
+    }
+    return {
+      type: "success",
+      message: data.message,
+      email: data.email,
+      joinedAt: data.joinedAt,
+    };
+  } catch {
+    return {
+      type: "error",
+      message: "Network error. Please check your connection and try again.",
+    };
+  }
+}
+
 export default function Home() {
   const [email, setEmail] = useState("");
+  const [heroLoading, setHeroLoading] = useState(false);
+  const [heroResult, setHeroResult] = useState<WaitlistResult | null>(null);
+
+  const [ctaEmail, setCtaEmail] = useState("");
+  const [ctaLoading, setCtaLoading] = useState(false);
+  const [ctaResult, setCtaResult] = useState<WaitlistResult | null>(null);
+
+  async function handleHeroSubmit() {
+    if (!email || heroLoading) return;
+    setHeroLoading(true);
+    setHeroResult(null);
+    try {
+      const result = await joinWaitlist(email);
+      setHeroResult(result);
+      if (result.type === "success") setEmail("");
+    } finally {
+      setHeroLoading(false);
+    }
+  }
+
+  async function handleCtaSubmit() {
+    if (!ctaEmail || ctaLoading) return;
+    setCtaLoading(true);
+    setCtaResult(null);
+    try {
+      const result = await joinWaitlist(ctaEmail);
+      setCtaResult(result);
+      if (result.type === "success") setCtaEmail("");
+    } finally {
+      setCtaLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -43,17 +113,97 @@ export default function Home() {
           </p>
 
           {/* Email form */}
-          <div className="flex gap-3">
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
-            />
-            <button className="px-5 py-3 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap cursor-pointer">
-              Join Waitlist
-            </button>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleHeroSubmit()}
+                disabled={heroLoading}
+                className="flex-1 px-4 py-3 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent disabled:opacity-60"
+              />
+              <button
+                onClick={handleHeroSubmit}
+                disabled={heroLoading || !email}
+                className="px-5 py-3 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 min-w-32.5 justify-center"
+              >
+                {heroLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                    Joining...
+                  </>
+                ) : (
+                  "Join Waitlist"
+                )}
+              </button>
+            </div>
+            {heroResult && (
+              <div
+                className={`flex items-start gap-3 rounded-xl px-4 py-3 text-sm ${
+                  heroResult.type === "success"
+                    ? "bg-green-50 border border-green-200 text-green-800"
+                    : "bg-red-50 border border-red-200 text-red-700"
+                }`}
+              >
+                {heroResult.type === "success" ? (
+                  <svg
+                    className="w-5 h-5 shrink-0 mt-0.5 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5 shrink-0 mt-0.5 text-red-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium">{heroResult.message}</span>
+                  {heroResult.type === "success" && heroResult.email && (
+                    <span className="text-xs text-green-600 font-medium">
+                      {heroResult.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* No spam */}
@@ -329,15 +479,97 @@ export default function Home() {
           <p className="text-gray-400 text-base">
             Join hundreds of healthcare professionals on our waitlist today.
           </p>
-          <div className="flex gap-3 w-full max-w-xl mt-2">
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              className="flex-1 px-5 py-4 rounded-xl bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-            />
-            <button className="px-6 py-4 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 transition-colors whitespace-nowrap cursor-pointer">
-              Join Waitlist
-            </button>
+          <div className="flex flex-col gap-3 w-full max-w-xl mt-2">
+            <div className="flex gap-3">
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                value={ctaEmail}
+                onChange={(e) => setCtaEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCtaSubmit()}
+                disabled={ctaLoading}
+                className="flex-1 px-5 py-4 rounded-xl bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-60"
+              />
+              <button
+                onClick={handleCtaSubmit}
+                disabled={ctaLoading || !ctaEmail}
+                className="px-6 py-4 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 transition-colors whitespace-nowrap cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 min-w-35 justify-center"
+              >
+                {ctaLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                    Joining...
+                  </>
+                ) : (
+                  "Join Waitlist"
+                )}
+              </button>
+            </div>
+            {ctaResult && (
+              <div
+                className={`flex items-start gap-3 rounded-xl px-4 py-3 text-sm ${
+                  ctaResult.type === "success"
+                    ? "bg-green-900/40 border border-green-700 text-green-200"
+                    : "bg-red-900/40 border border-red-700 text-red-300"
+                }`}
+              >
+                {ctaResult.type === "success" ? (
+                  <svg
+                    className="w-5 h-5 shrink-0 mt-0.5 text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5 shrink-0 mt-0.5 text-red-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium">{ctaResult.message}</span>
+                  {ctaResult.type === "success" && ctaResult.email && (
+                    <span className="text-xs text-green-400 font-medium">
+                      {ctaResult.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <svg
